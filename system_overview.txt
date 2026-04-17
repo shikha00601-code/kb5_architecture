@@ -1,0 +1,48 @@
+ShopStream — System Architecture Overview
+Last updated: 2026-01-10
+Author: Rahul Sharma
+
+1. SYSTEM PURPOSE
+ShopStream is an order management platform built as microservices.
+It handles order creation, payment processing, inventory management, 
+and order tracking for an e-commerce business.
+
+2. SERVICES
+- order-service: Core service. Handles order CRUD, search, analytics.
+  Tech: Spring Boot 3.2, Java 17, PostgreSQL, Elasticsearch
+- payment-service: Processes payments via Stripe, handles refunds.
+  Tech: Spring Boot 3.2, Java 17, PostgreSQL
+- inventory-service: Manages stock levels, reservations, restocking.
+  Tech: Spring Boot 3.2, Java 17, PostgreSQL
+- (planned) notification-service: Email/SMS notifications for order updates
+- (planned) analytics-service: Dedicated analytics and reporting
+
+3. COMMUNICATION
+- Synchronous: REST (order-service -> inventory-service for stock check)
+- Asynchronous: Kafka events (order-service -> payment-service, 
+  order-service -> inventory-service for cancellations)
+- Events: ORDER_CREATED, ORDER_CANCELLED, PAYMENT_COMPLETED, 
+  PAYMENT_FAILED, INVENTORY_RESERVED, INVENTORY_RELEASED
+
+4. DATA STORES
+- PostgreSQL: Primary database (one per service for data isolation)
+- Redis: Caching (product catalog, inventory counts, rate limiting)
+- Elasticsearch: Full-text search for orders and products
+- Kafka: Event streaming and async communication
+
+5. INFRASTRUCTURE
+- AWS ECS Fargate for container orchestration
+- AWS ALB for load balancing
+- AWS RDS for managed PostgreSQL
+- AWS MSK for managed Kafka
+- AWS ElastiCache for managed Redis
+- Terraform for infrastructure as code
+- GitHub Actions for CI/CD
+
+6. KEY ARCHITECTURAL DECISIONS
+- Microservices over monolith: Each domain owns its data and logic
+- Event-driven communication: Decouples services, enables replay
+- Database per service: No shared database, prevents tight coupling
+- Cache-aside pattern: Simple, effective, minimal write overhead
+- Choreography saga: For distributed transactions (order cancellation)
+- Pessimistic locking: For inventory reservation under high concurrency

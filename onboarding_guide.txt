@@ -1,0 +1,48 @@
+ShopStream — New Developer Onboarding Guide
+Last updated: 2026-01-15
+Author: Rahul Sharma
+
+GETTING STARTED:
+
+1. Clone the repo: git clone git@github.com:ascendion/shopstream.git
+2. Copy .env.example to .env and fill in values (ask Rahul for secrets)
+3. Run: docker-compose up -d
+4. Wait 2 minutes for all services to start (Kafka takes longest)
+5. Verify: curl http://localhost:8080/actuator/health
+
+LOCAL DEVELOPMENT:
+- Each service runs on a different port: 
+  order-service: 8080, payment-service: 8081, inventory-service: 8082
+- Hot reload enabled — code changes auto-restart the service
+- Swagger UI: http://localhost:8080/swagger-ui
+- Grafana: http://localhost:3000 (admin/admin)
+- Kafka UI: http://localhost:9090
+
+KEY THINGS TO KNOW:
+- All inter-service communication is async via Kafka (except inventory 
+  stock check which is a sync REST call during order creation)
+- Every request gets a correlation ID — always include it in your logs
+- Feature flags are in LaunchDarkly — check before adding if/else for 
+  new features
+- Database migrations go in src/main/resources/db/migration/
+  Name format: V{number}__{description}.sql
+- Never use TIMESTAMP, always use TIMESTAMPTZ
+- All amounts stored as DECIMAL, never FLOAT
+- Cache keys follow pattern: {service}:{entity}:{id}
+  Example: inventory:product:uuid-here
+
+COMMON TASKS:
+- Add a new Kafka event: Define in common module, publish in source service, 
+  consume in target service. Always add to processed_events for idempotency.
+- Add a new REST endpoint: Add controller, service, DTO. Add to Swagger 
+  annotations. Add integration test.
+- Run tests: mvn test (unit), mvn verify (integration with Testcontainers)
+- Deploy to staging: Push to main branch, CI/CD handles the rest
+- Deploy to production: Create release tag, approve in GitHub Actions
+
+TEAM CONTACTS:
+- Rahul Sharma: Tech lead, architecture decisions, Kafka/infra questions
+- Priya Nair: Backend logic, database, payment integration
+- Arjun Patel: DevOps, CI/CD, AWS infrastructure
+- Meera Iyer: QA, testing strategy, performance tests
+- Karan Joshi: Frontend API, GraphQL, real-time features

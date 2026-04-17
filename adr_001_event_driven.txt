@@ -1,0 +1,37 @@
+Architecture Decision Record: ADR-001
+Title: Use event-driven architecture for inter-service communication
+Date: 2025-08-18
+Status: Accepted
+Author: Rahul Sharma
+
+Context:
+Order processing requires coordination between order-service, 
+payment-service, and inventory-service. We need to decide how 
+these services communicate.
+
+Options considered:
+1. Synchronous REST calls between services
+2. Asynchronous event-driven communication via message queue
+3. Hybrid (some sync, some async)
+
+Decision:
+Option 3 — Hybrid approach.
+- Inventory stock check: Synchronous REST (needs immediate response 
+  to tell customer if item is in stock)
+- Order -> Payment: Asynchronous via Kafka (payment can be processed 
+  in background, customer gets order confirmation immediately)
+- Cancellation flow: Asynchronous saga via Kafka events
+
+Rationale:
+- Pure sync (Option 1) causes cascading failures — if payment-service 
+  is slow, order-service blocks too
+- Pure async (Option 2) adds complexity to inventory check — we'd need 
+  to wait for an event response before confirming the order to the customer
+- Hybrid gives us the best of both worlds — fast inventory checks and 
+  resilient payment processing
+
+Consequences:
+- Need to manage Kafka cluster (mitigated by using AWS MSK)
+- Need idempotent consumers (Kafka at-least-once delivery)
+- Need dead letter topics for failed messages
+- Team needs to learn Kafka concepts

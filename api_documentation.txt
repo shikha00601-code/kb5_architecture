@@ -1,0 +1,70 @@
+ShopStream API Documentation
+Version: v1 and v2
+Base URL: https://api.shopstream.com
+
+AUTHENTICATION
+All endpoints require Bearer token in Authorization header.
+Tokens obtained via POST /api/auth/login.
+
+ORDER ENDPOINTS (v1):
+
+POST /api/v1/orders
+  Creates a new order. Validates stock, reserves inventory, 
+  publishes ORDER_CREATED event.
+  Request body: { customerId, items: [{ productId, quantity }], currency }
+  Response: { orderId, status, totalAmount, currency }
+
+GET /api/v1/orders/{id}
+  Returns order details including items and current status.
+  Response: { orderId, customerId, items, status, totalAmount, 
+              currency, createdAt, updatedAt }
+
+GET /api/v1/orders
+  List orders with filtering and pagination.
+  Query params: customerId, status, dateFrom, dateTo, page, size, sort
+  Response: { content: [...], totalElements, totalPages }
+
+PUT /api/v1/orders/{id}/cancel
+  Cancels an order. Triggers saga: release inventory, refund payment.
+  Response: { orderId, status: "CANCELLATION_PENDING" }
+
+GET /api/v1/orders/{id}/track
+  Returns current tracking status.
+  Also supports SSE: GET /api/v1/orders/{id}/track/stream
+
+ORDER ENDPOINTS (v2):
+
+POST /api/v2/orders/bulk
+  Create multiple orders in one request. Max 10 orders per request.
+  Request body: { orders: [{ customerId, items, currency }, ...] }
+
+PAYMENT ENDPOINTS:
+
+POST /api/v1/payments/webhook
+  Stripe webhook endpoint. Receives payment confirmations.
+  Verifies Stripe signature header.
+
+GET /api/v1/payments?orderId={id}
+  Returns payment status for an order.
+
+INVENTORY ENDPOINTS:
+
+GET /api/v1/inventory/{productId}
+  Returns current stock level for a product.
+
+POST /api/v1/inventory/{productId}/restock
+  Adds stock. Request body: { quantity }
+
+SEARCH ENDPOINTS:
+
+GET /api/v1/search/orders?q={query}
+  Full-text search across orders. Supports fuzzy matching.
+  
+GET /api/v1/search/products?q={query}
+  Product search with autocomplete support.
+
+GRAPHQL:
+
+POST /graphql
+  GraphQL endpoint for frontend. Supports order, items, and payment 
+  queries in single request.

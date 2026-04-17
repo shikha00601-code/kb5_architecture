@@ -1,0 +1,52 @@
+ShopStream Infrastructure Configuration
+Managed via Terraform
+
+AWS REGION: us-east-1
+
+VPC:
+  CIDR: 10.0.0.0/16
+  Public subnets: 10.0.1.0/24, 10.0.2.0/24 (2 AZs)
+  Private subnets: 10.0.10.0/24, 10.0.20.0/24 (2 AZs)
+  NAT Gateway in each AZ for outbound internet from private subnets
+
+ECS FARGATE:
+  Cluster: shopstream-cluster
+  Services:
+    order-service: 2 tasks (min 2, max 8, target CPU 60%)
+    payment-service: 2 tasks (min 2, max 6, target CPU 60%)
+    inventory-service: 2 tasks (min 2, max 6, target CPU 60%)
+  Task definitions: 0.5 vCPU, 1GB RAM per task
+  Flash sale config: manually scale to 4 tasks before sale
+
+ALB:
+  External ALB in public subnets
+  Path-based routing:
+    /api/orders/* -> order-service target group
+    /api/payments/* -> payment-service target group
+    /api/inventory/* -> inventory-service target group
+    /graphql -> order-service target group
+
+RDS PostgreSQL:
+  Instance: db.r6g.large
+  Multi-AZ: enabled
+  Storage: 100GB GP3 with auto-scaling
+  3 databases: orderdb, paymentdb, inventorydb
+  Automated backups: 7-day retention
+  Read replica: 1 (for analytics queries)
+
+ELASTICACHE REDIS:
+  Node type: cache.r6g.large
+  Cluster mode: disabled (single node + replica)
+  Engine: Redis 7.0
+
+MSK (KAFKA):
+  Broker count: 3
+  Instance type: kafka.m5.large
+  Topics: order-events, payment-events, inventory-events
+  Retention: 7 days
+  Partitions: 6 per topic (increased from 3 for flash sale)
+
+ELASTICSEARCH:
+  Managed via AWS OpenSearch Service
+  Instance: r6g.large.search x 2
+  Storage: 100GB per node
